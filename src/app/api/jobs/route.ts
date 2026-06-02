@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { quote } from "@/lib/pricing";
 import { isEntitledFor } from "@/lib/entitlement";
+import { triggerRender } from "@/lib/trigger";
 import type { RenderOptions } from "@/lib/options";
 
 // Accepts a render request. S1: validates + requires login + returns a quote.
@@ -54,12 +55,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // TODO(S3): a worker polls demo.jobs (status='queued') → runs demo-pipeline /
-  // screenshot-grid against the URL → uploads output to storage → sets output_url.
+  // Kick off the render (free GitHub Actions worker). Job stays 'queued' if the
+  // trigger isn't configured yet; nothing is lost.
+  const jobId = (job as { id?: string })?.id;
+  const trig = jobId ? await triggerRender(jobId) : { ok: false, reason: "no job id" };
 
   return NextResponse.json({
     ok: true,
     job,
-    message: `Queued render for ${body.url}. You'll get the file here when it's done.`,
+    triggered: trig.ok,
+    message: trig.ok
+      ? `Rendering ${body.url} now — your file will appear here when it's done.`
+      : `Queued render for ${body.url}. It will start once the render worker is connected.`,
   });
 }
