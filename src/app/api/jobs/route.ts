@@ -38,16 +38,27 @@ export async function POST(request: Request) {
 
   const q = quote(body);
 
-  // TODO(S2): insert into demo.jobs (user_id, target_url, service, options, status, cost_cents)
-  // TODO(S3): worker polls demo.jobs → runs demo-pipeline / screenshot-grid → uploads to storage.
-  // TODO(S4): if q.priceUsd > 0, create a Stripe Checkout session and gate the render.
+  // Persist the job (demo.jobs via the SECURITY DEFINER RPC in public).
+  const { data: job, error } = await supabase.rpc("demo_create_job", {
+    p_target_url: body.url,
+    p_service: body.service,
+    p_options: {
+      mode: body.mode, format: body.format, voice: body.voice,
+      subtitles: body.subtitles, preset: body.preset,
+    },
+    p_cost_cents: Math.round(q.costUsd * 100),
+    p_price_cents: Math.round(q.priceUsd * 100),
+  });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // TODO(S3): a worker polls demo.jobs (status='queued') → runs demo-pipeline /
+  // screenshot-grid against the URL → uploads output to storage → sets output_url.
 
   return NextResponse.json({
     ok: true,
-    quote: q,
-    message:
-      q.priceUsd > 0
-        ? `Job accepted for ${body.url}. Checkout + rendering land in the next release.`
-        : `Job accepted for ${body.url}. Rendering backend lands in the next release — you'll get the file here.`,
+    job,
+    message: `Queued render for ${body.url}. You'll get the file here when it's done.`,
   });
 }

@@ -34,7 +34,49 @@ create policy "own jobs" on demo.jobs
 -- The render worker uses the service_role key (bypasses RLS) to claim queued
 -- jobs and write results, so no extra policy is needed for it.
 
--- NOTE: to read/write demo.jobs via the REST API (PostgREST), add `demo` to the
--- project's exposed schemas: Dashboard → Settings → API → Exposed schemas,
--- or set db.schemas in config. The worker (service_role over the DB) does not
--- need this; only client/REST access does.
+-- The app talks to demo.jobs through these SECURITY DEFINER functions in the
+-- already-exposed `public` schema, so we DON'T need to expose `demo` over REST.
+-- They run as the definer but key off auth.uid(), so a user only ever creates /
+-- sees their own rows.
+
+create or replace function public.demo_create_job(
+  p_target_url text,
+  p_service    text,
+  p_options    jsonb,
+  p_cost_cents int,
+  p_price_cents int
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, demo
+as $$
+declare j demo.jobs;
+begin
+  if auth.uid() is null then
+    raise exception 'authentication required' using errcode = '28000';
+  end if;
+  insert into demo.jobs (user_id, target_url, service, options, cost_cents, price_cents)
+  values (auth.uid(), p_target_url, p_service,
+          coalesce(p_options, '{}'::jsonb),
+          coalesce(p_cost_cents, 0), coalesce(p_price_cents, 0))
+  returning * into j;
+  return to_jsonb(j);
+end;
+$$;
+
+create or replace function public.demo_my_jobs()
+returns jsonb
+language sql
+security definer
+set search_path = public, demo
+stable
+as $$
+  select coalesce(jsonb_agg(to_jsonb(j) order by j.created_at desc), '[]'::jsonb)
+  from demo.jobs j
+  where j.user_id = auth.uid();
+$$;
+
+revoke execute on function public.demo_create_job(text, text, jsonb, int, int) from anon, public;
+revoke execute on function public.demo_my_jobs() from anon, public;
+grant execute on function public.demo_create_job(text, text, jsonb, int, int) to authenticated;
+grant execute on function public.demo_my_jobs() to authenticated;
