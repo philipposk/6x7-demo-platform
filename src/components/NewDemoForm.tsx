@@ -1,0 +1,140 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  SERVICES, MODES, FORMATS, VOICES, SUBTITLES, PRESETS,
+  DEFAULT_OPTIONS, type RenderOptions,
+} from "@/lib/options";
+import { quote, fmtUsd } from "@/lib/pricing";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm text-zinc-400">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const selectCls =
+  "w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+
+export default function NewDemoForm() {
+  const [o, setO] = useState<RenderOptions>(DEFAULT_OPTIONS);
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const set = (patch: Partial<RenderOptions>) => setO((p) => ({ ...p, ...patch }));
+
+  const q = useMemo(() => quote(o), [o]);
+  const isVideo = o.service === "video";
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(o),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setStatus(data.message || "Job accepted.");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-6 md:grid-cols-[1fr_320px]">
+      <div className="space-y-5">
+        <Field label="Your live site URL">
+          <input
+            required
+            type="url"
+            value={o.url}
+            onChange={(e) => set({ url: e.target.value })}
+            placeholder="https://yourapp.com"
+            className={selectCls}
+          />
+        </Field>
+
+        <Field label="What to make">
+          <div className="grid grid-cols-2 gap-2">
+            {SERVICES.map((s) => (
+              <button
+                type="button"
+                key={s.id}
+                onClick={() => set({ service: s.id })}
+                className={`rounded-lg border p-3 text-left text-sm ${
+                  o.service === s.id ? "border-emerald-500 bg-emerald-500/10" : "border-zinc-700 hover:border-zinc-500"
+                }`}
+              >
+                <div className="font-medium">{s.label}</div>
+                <div className="text-xs text-zinc-400">{s.blurb}</div>
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {isVideo && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Style">
+              <select className={selectCls} value={o.mode} onChange={(e) => set({ mode: e.target.value as RenderOptions["mode"] })}>
+                {MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Aspect ratio">
+              <select className={selectCls} value={o.format} onChange={(e) => set({ format: e.target.value as RenderOptions["format"] })}>
+                {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Voice">
+              <select className={selectCls} value={o.voice} onChange={(e) => set({ voice: e.target.value as RenderOptions["voice"] })}>
+                {VOICES.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Subtitles">
+              <select className={selectCls} value={o.subtitles} onChange={(e) => set({ subtitles: e.target.value as RenderOptions["subtitles"] })}>
+                {SUBTITLES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Which features">
+              <select className={selectCls} value={o.preset} onChange={(e) => set({ preset: e.target.value as RenderOptions["preset"] })}>
+                {PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            </Field>
+          </div>
+        )}
+      </div>
+
+      {/* Price + submit panel */}
+      <aside className="h-fit rounded-xl border border-zinc-800 bg-zinc-950 p-5">
+        <div className="text-sm text-zinc-400">Estimated price</div>
+        <div className="mt-1 text-3xl font-semibold text-emerald-400">{fmtUsd(q.priceUsd)}</div>
+        <ul className="mt-4 space-y-1 text-xs text-zinc-500">
+          {q.breakdown.map((b) => (
+            <li key={b.label} className="flex justify-between">
+              <span>{b.label}</span>
+              <span>{b.usd === 0 ? "—" : `$${b.usd.toFixed(3)}`}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
+        >
+          {busy ? "Submitting…" : q.free ? "Generate (free)" : `Generate · ${fmtUsd(q.priceUsd)}`}
+        </button>
+        {status && <p className="mt-3 text-sm text-zinc-300">{status}</p>}
+        <p className="mt-3 text-xs text-zinc-600">
+          Rendering runs on our server against your live URL. No code is uploaded.
+        </p>
+      </aside>
+    </form>
+  );
+}
