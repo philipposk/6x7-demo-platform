@@ -7,7 +7,7 @@ import {
 } from "@/lib/options";
 import { quote, fmtUsd } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/client";
-import { isEntitled } from "@/lib/entitlement";
+import { isEntitledFor } from "@/lib/entitlement";
 import SubscribeModal from "./SubscribeModal";
 import type { User } from "@supabase/supabase-js";
 
@@ -29,12 +29,17 @@ export default function NewDemoForm() {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [entitled, setEntitled] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const set = (patch: Partial<RenderOptions>) => setO((p) => ({ ...p, ...patch }));
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
+    const refresh = async (u: User | null) => {
+      setUser(u);
+      setEntitled(u ? await isEntitledFor(supabase, "demo") : false);
+    };
+    supabase.auth.getUser().then(({ data }) => refresh(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => refresh(s?.user ?? null));
     return () => sub.subscription.unsubscribe();
   }, [supabase]);
 
@@ -45,7 +50,7 @@ export default function NewDemoForm() {
     e.preventDefault();
     // Every hosted render uses our servers → requires a subscription. Guests and
     // signed-in-but-unsubscribed users hit the paywall instead of rendering.
-    if (!isEntitled(user)) {
+    if (!entitled) {
       setShowSubscribe(true);
       return;
     }
