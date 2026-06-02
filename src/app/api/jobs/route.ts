@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { quote } from "@/lib/pricing";
+import { isEntitled } from "@/lib/entitlement";
 import type { RenderOptions } from "@/lib/options";
 
 // Accepts a render request. S1: validates + requires login + returns a quote.
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Please sign in to generate a demo." }, { status: 401 });
+  }
+
+  // Every hosted render uses our servers → requires an active subscription.
+  if (!isEntitled(user)) {
+    return NextResponse.json(
+      { error: "A subscription is required to render.", subscribe: "/subscribe" },
+      { status: 402 },
+    );
   }
 
   const q = quote(body);

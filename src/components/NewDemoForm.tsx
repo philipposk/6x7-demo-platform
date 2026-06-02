@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   SERVICES, MODES, FORMATS, VOICES, SUBTITLES, PRESETS,
   DEFAULT_OPTIONS, type RenderOptions,
 } from "@/lib/options";
 import { quote, fmtUsd } from "@/lib/pricing";
+import { createClient } from "@/lib/supabase/client";
+import { isEntitled } from "@/lib/entitlement";
+import SubscribeModal from "./SubscribeModal";
+import type { User } from "@supabase/supabase-js";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -20,16 +24,31 @@ const selectCls =
   "w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
 export default function NewDemoForm() {
+  const supabase = useMemo(() => createClient(), []);
   const [o, setO] = useState<RenderOptions>(DEFAULT_OPTIONS);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [showSubscribe, setShowSubscribe] = useState(false);
   const set = (patch: Partial<RenderOptions>) => setO((p) => ({ ...p, ...patch }));
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, [supabase]);
 
   const q = useMemo(() => quote(o), [o]);
   const isVideo = o.service === "video";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Every hosted render uses our servers → requires a subscription. Guests and
+    // signed-in-but-unsubscribed users hit the paywall instead of rendering.
+    if (!isEntitled(user)) {
+      setShowSubscribe(true);
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {
@@ -39,6 +58,7 @@ export default function NewDemoForm() {
         body: JSON.stringify(o),
       });
       const data = await res.json();
+      if (res.status === 402) { setShowSubscribe(true); return; }
       if (!res.ok) throw new Error(data.error || "Failed");
       setStatus(data.message || "Job accepted.");
     } catch (err) {
@@ -128,13 +148,16 @@ export default function NewDemoForm() {
           disabled={busy}
           className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
         >
-          {busy ? "Submitting…" : q.free ? "Generate (free)" : `Generate · ${fmtUsd(q.priceUsd)}`}
+          {busy ? "Submitting…" : "Generate"}
         </button>
         {status && <p className="mt-3 text-sm text-zinc-300">{status}</p>}
         <p className="mt-3 text-xs text-zinc-600">
-          Rendering runs on our server against your live URL. No code is uploaded.
+          Hosted rendering needs a subscription. Configuring + pricing is free, and you can always
+          run it yourself with the open-source CLI.
         </p>
       </aside>
+
+      <SubscribeModal open={showSubscribe} onClose={() => setShowSubscribe(false)} signedIn={!!user} />
     </form>
   );
 }

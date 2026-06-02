@@ -21,7 +21,8 @@ export default function Home() {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-lg text-zinc-400">
           Paste a URL. Get a narrated click-through video — landscape or vertical for socials — or a
-          clickable screenshot grid for your README. Free voices, optional premium.
+          clickable screenshot grid for your README. Explore free; subscribe to render on our
+          servers, or run it yourself with the open-source CLI.
         </p>
         <div className="mt-7 flex justify-center gap-3">
           <Link href="/new" className="rounded-md bg-emerald-500 px-5 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400">
