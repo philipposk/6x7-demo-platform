@@ -11,30 +11,62 @@ import { isEntitledFor } from "@/lib/entitlement";
 import SubscribeModal from "./SubscribeModal";
 import type { User } from "@supabase/supabase-js";
 
-type Job = { id: string; status: string; output_url?: string | null; error?: string | null; service?: string };
+type Job = { id: string; status: string; progress?: string | null; output_url?: string | null; error?: string | null; service?: string; created_at?: string };
 
-const STATUS_LABEL: Record<string, string> = {
-  queued: "Queued…",
-  rendering: "Rendering on our servers…",
-  done: "Done",
-  error: "Failed",
-};
+// Map a progress message to a rough bar %, so the bar moves through the render.
+function pct(stage: string | null | undefined, status: string): number {
+  if (status === "done") return 100;
+  const s = (stage || "").toLowerCase();
+  if (s.includes("starting up")) return 8;
+  if (s.includes("preparing")) return 22;
+  if (s.includes("reading your site")) return 32;
+  if (s.includes("script")) return 44;
+  if (s.includes("recording")) return 60;
+  if (s.includes("audio")) return 70;
+  if (s.includes("encoding") || s.includes("captions")) return 85;
+  if (s.includes("capturing")) return 55;
+  if (s.includes("uploading")) return 95;
+  return status === "queued" ? 4 : 15;
+}
 
 function JobPanel({ job, onReset }: { job: Job; onReset: () => void }) {
   const working = job.status === "queued" || job.status === "rendering";
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!working) return;
+    const start = job.created_at ? new Date(job.created_at).getTime() : Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [working, job.created_at]);
+
+  const mmss = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
+  const stage = job.progress || (job.status === "queued" ? "Waiting for a render machine…" : "Working…");
+  const width = pct(job.progress, job.status);
+
   return (
     <aside className="h-fit rounded-xl border border-zinc-800 bg-zinc-950 p-5">
       <div className="flex items-center gap-2 text-sm">
         {working && <span className="h-3 w-3 animate-pulse rounded-full bg-emerald-400" />}
         <span className={job.status === "error" ? "text-red-400" : "text-zinc-200"}>
-          {STATUS_LABEL[job.status] || job.status}
+          {job.status === "done" ? "Done" : job.status === "error" ? "Failed" : stage}
         </span>
       </div>
 
       {working && (
-        <p className="mt-3 text-xs text-zinc-500">
-          This takes a couple of minutes — recording, narrating and encoding. You can leave this open.
-        </p>
+        <>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: `${width}%` }} />
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-zinc-500">
+            <span>Elapsed {mmss}</span>
+            <span>usually 1–3 min</span>
+          </div>
+          <p className="mt-3 text-xs text-zinc-600">
+            Runs on a fresh cloud machine (it boots, installs a browser + encoder, then renders).
+            You can leave this open — it keeps going.
+          </p>
+        </>
       )}
 
       {job.status === "done" && job.output_url && (
