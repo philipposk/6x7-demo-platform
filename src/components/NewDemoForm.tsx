@@ -11,6 +11,60 @@ import { isEntitledFor } from "@/lib/entitlement";
 import SubscribeModal from "./SubscribeModal";
 import type { User } from "@supabase/supabase-js";
 
+type Job = { id: string; status: string; output_url?: string | null; error?: string | null; service?: string };
+
+const STATUS_LABEL: Record<string, string> = {
+  queued: "Queued…",
+  rendering: "Rendering on our servers…",
+  done: "Done",
+  error: "Failed",
+};
+
+function JobPanel({ job, onReset }: { job: Job; onReset: () => void }) {
+  const working = job.status === "queued" || job.status === "rendering";
+  return (
+    <aside className="h-fit rounded-xl border border-zinc-800 bg-zinc-950 p-5">
+      <div className="flex items-center gap-2 text-sm">
+        {working && <span className="h-3 w-3 animate-pulse rounded-full bg-emerald-400" />}
+        <span className={job.status === "error" ? "text-red-400" : "text-zinc-200"}>
+          {STATUS_LABEL[job.status] || job.status}
+        </span>
+      </div>
+
+      {working && (
+        <p className="mt-3 text-xs text-zinc-500">
+          This takes a couple of minutes — recording, narrating and encoding. You can leave this open.
+        </p>
+      )}
+
+      {job.status === "done" && job.output_url && (
+        <div className="mt-4 space-y-3">
+          {job.service === "screenshots" ? (
+            <a href={job.output_url} className="block rounded-md bg-emerald-500 px-4 py-2.5 text-center font-medium text-emerald-950 hover:bg-emerald-400">
+              Download screenshots (.zip)
+            </a>
+          ) : (
+            <>
+              <video src={job.output_url} controls className="w-full rounded-lg border border-zinc-800" />
+              <a href={job.output_url} download className="block rounded-md bg-emerald-500 px-4 py-2.5 text-center font-medium text-emerald-950 hover:bg-emerald-400">
+                Download video
+              </a>
+            </>
+          )}
+        </div>
+      )}
+
+      {job.status === "error" && (
+        <p className="mt-3 text-sm text-red-400">{job.error || "Render failed. Try again."}</p>
+      )}
+
+      <button onClick={onReset} className="mt-4 w-full text-center text-xs text-zinc-600 hover:text-zinc-400">
+        ← Make another
+      </button>
+    </aside>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -31,7 +85,20 @@ export default function NewDemoForm() {
   const [user, setUser] = useState<User | null>(null);
   const [entitled, setEntitled] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
+  const [job, setJob] = useState<Job | null>(null);
   const set = (patch: Partial<RenderOptions>) => setO((p) => ({ ...p, ...patch }));
+
+  // Poll the active job until it finishes.
+  useEffect(() => {
+    if (!job || job.status === "done" || job.status === "error") return;
+    const t = setInterval(async () => {
+      const res = await fetch(`/api/jobs?id=${job.id}`);
+      if (!res.ok) return;
+      const { job: j } = await res.json();
+      if (j) setJob(j);
+    }, 4000);
+    return () => clearInterval(t);
+  }, [job]);
 
   useEffect(() => {
     const refresh = async (u: User | null) => {
@@ -65,7 +132,8 @@ export default function NewDemoForm() {
       const data = await res.json();
       if (res.status === 402) { setShowSubscribe(true); return; }
       if (!res.ok) throw new Error(data.error || "Failed");
-      setStatus(data.message || "Job accepted.");
+      setStatus(null);
+      if (data.job) setJob(data.job);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -136,7 +204,8 @@ export default function NewDemoForm() {
         )}
       </div>
 
-      {/* Price + submit panel */}
+      {/* Price + submit panel, or live job status once a render is running */}
+      {job ? <JobPanel job={job} onReset={() => setJob(null)} /> : (
       <aside className="h-fit rounded-xl border border-zinc-800 bg-zinc-950 p-5">
         <div className="text-sm text-zinc-400">Estimated price</div>
         <div className="mt-1 text-3xl font-semibold text-emerald-400">{fmtUsd(q.priceUsd)}</div>
@@ -161,6 +230,7 @@ export default function NewDemoForm() {
           run it yourself with the open-source CLI.
         </p>
       </aside>
+      )}
 
       <SubscribeModal open={showSubscribe} onClose={() => setShowSubscribe(false)} signedIn={!!user} />
     </form>

@@ -5,8 +5,20 @@ import { isEntitledFor } from "@/lib/entitlement";
 import { triggerRender } from "@/lib/trigger";
 import type { RenderOptions } from "@/lib/options";
 
-// Accepts a render request. S1: validates + requires login + returns a quote.
-// S2 will insert into demo.jobs; S3 will have the worker pick it up.
+// Poll a single job's status (owner only).
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const { data, error } = await supabase.rpc("demo_job_get", { p_id: id });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ job: data });
+}
+
+// Accepts a render request: validate → require login + subscription → persist →
+// trigger the render worker.
 export async function POST(request: Request) {
   let body: RenderOptions;
   try {
