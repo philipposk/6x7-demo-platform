@@ -6,7 +6,7 @@ export default function NewDemoPage() {
       <div>
         <h1 className="text-2xl font-semibold">New demo</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Point us at your live site and choose how it should look. The price updates as you go.
+          Paste a link to your live website, or to a public GitHub repo that has one. The price updates as you go.
         </p>
       </div>
       <NewDemoForm />

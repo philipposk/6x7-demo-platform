@@ -118,7 +118,12 @@ export default function NewDemoForm() {
   const [entitled, setEntitled] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
-  const set = (patch: Partial<RenderOptions>) => setO((p) => ({ ...p, ...patch }));
+  // A GitHub repo link was turned into a live site: ask before recording it.
+  const [confirm, setConfirm] = useState<{ url: string; label: string } | null>(null);
+  const set = (patch: Partial<RenderOptions>) => {
+    if (patch.url !== undefined) setConfirm(null);
+    setO((p) => ({ ...p, ...patch }));
+  };
 
   // Poll the active job until it finishes.
   useEffect(() => {
@@ -145,8 +150,7 @@ export default function NewDemoForm() {
   const q = useMemo(() => quote(o), [o]);
   const isVideo = o.service === "video";
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function send(opts: RenderOptions) {
     // Every hosted render uses our servers → requires a subscription. Guests and
     // signed-in-but-unsubscribed users hit the paywall instead of rendering.
     if (!entitled) {
@@ -159,12 +163,16 @@ export default function NewDemoForm() {
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(o),
+        body: JSON.stringify(opts),
       });
       const data = await res.json();
       if (res.status === 402) { setShowSubscribe(true); return; }
       if (!res.ok) throw new Error(data.error || "Failed");
       setStatus(null);
+      if (data.needsConfirmation) {
+        setConfirm({ url: data.resolvedUrl, label: data.sourceLabel });
+        return;
+      }
       if (data.job) setJob(data.job);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Something went wrong.");
@@ -173,16 +181,30 @@ export default function NewDemoForm() {
     }
   }
 
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    send(o);
+  }
+
+  // The user said yes to the site we found: record it as a plain website link.
+  function confirmUrl() {
+    if (!confirm) return;
+    const next = { ...o, url: confirm.url };
+    setO(next);
+    setConfirm(null);
+    send(next);
+  }
+
   return (
     <form onSubmit={submit} className="grid gap-6 md:grid-cols-[1fr_320px]">
       <div className="space-y-5">
-        <Field label="Your live site URL">
+        <Field label="Your live site, or its GitHub repo">
           <input
             required
             type="url"
             value={o.url}
             onChange={(e) => set({ url: e.target.value })}
-            placeholder="https://yourapp.com"
+            placeholder="https://yourapp.com or https://github.com/you/yourapp"
             className={selectCls}
           />
         </Field>
@@ -249,13 +271,38 @@ export default function NewDemoForm() {
             </li>
           ))}
         </ul>
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
-        >
-          {busy ? "Submitting…" : "Generate"}
-        </button>
+        {confirm ? (
+          <div className="mt-5 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3">
+            <p className="text-sm text-zinc-200">We&apos;ll record:</p>
+            <a href={confirm.url} target="_blank" rel="noreferrer" className="mt-1 block break-all text-sm text-emerald-300 underline">
+              {confirm.url}
+            </a>
+            <p className="mt-1 text-xs text-zinc-500">Found {confirm.label}.</p>
+            <button
+              type="button"
+              onClick={confirmUrl}
+              disabled={busy}
+              className="mt-3 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
+            >
+              {busy ? "Submitting…" : "Yes, record this"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirm(null); setStatus("Paste the address of the site you want recorded."); }}
+              className="mt-2 w-full text-center text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Not the right site — use a different link
+            </button>
+          </div>
+        ) : (
+          <button
+            type="submit"
+            disabled={busy}
+            className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
+          >
+            {busy ? "Submitting…" : "Generate"}
+          </button>
+        )}
         {status && <p className="mt-3 text-sm text-zinc-300">{status}</p>}
         <p className="mt-3 text-xs text-zinc-600">
           Hosted rendering needs a subscription. Configuring + pricing is free, and you can always
