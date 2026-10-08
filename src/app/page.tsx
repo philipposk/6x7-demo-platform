@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StudioSection from "@/components/StudioSection";
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
@@ -13,18 +14,51 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 export default function Home() {
   return (
     <div className="space-y-20">
-      {/* Hero */}
+      {/* Hero: two offers */}
       <section className="pt-8 text-center">
         <p className="text-sm font-medium uppercase tracking-widest text-emerald-400">demo.6x7.gr</p>
         <h1 className="mx-auto mt-3 max-w-2xl text-4xl font-bold leading-tight sm:text-5xl">
-          Turn any live web app into a demo video.
+          Product videos, two ways.
         </h1>
+        <p className="mx-auto mt-4 max-w-xl text-lg text-zinc-400">
+          Record your live site in minutes, or have a polished motion video built from code. Pick the one that fits.
+        </p>
+        <div className="mt-8 grid gap-4 text-left sm:grid-cols-2">
+          <a href="#instant" className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 hover:border-emerald-500/50">
+            <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">Instant</p>
+            <h2 className="mt-1 text-xl font-semibold">Record your live site</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Paste a URL. We click through your real site and add narration. Ready in a few minutes.
+            </p>
+            <p className="mt-3 text-sm text-zinc-500">Best for: a quick demo of an app that is already live.</p>
+            <p className="mt-4 text-sm font-medium text-emerald-400 group-hover:text-emerald-300">See Instant ↓</p>
+          </a>
+          <a href="#studio" className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 hover:border-emerald-500/50">
+            <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">Studio</p>
+            <h2 className="mt-1 text-xl font-semibold">Built from code</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              No screen recording. Your screens are redrawn as animation, timed to the voice.
+            </p>
+            <p className="mt-3 text-sm text-zinc-500">Best for: a polished launch or promo video.</p>
+            <p className="mt-4 text-sm font-medium text-emerald-400 group-hover:text-emerald-300">See Studio ↓</p>
+          </a>
+        </div>
+      </section>
+
+      {/* Instant */}
+      <section id="instant" className="scroll-mt-20 text-center">
+        <span className="inline-block rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-emerald-300">
+          Instant
+        </span>
+        <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">
+          Turn any live web app into a demo video.
+        </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg text-zinc-400">
           Paste a URL. Get a narrated click-through video — landscape or vertical for socials — or a
           clickable screenshot grid for your README. Explore free; subscribe to render on our
           servers, or run it yourself with the open-source CLI.
         </p>
-        <div className="mt-7 flex justify-center gap-3">
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link href="/new" className="rounded-md bg-emerald-500 px-5 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400">
             Make a demo →
           </Link>
@@ -42,7 +76,7 @@ export default function Home() {
 
       {/* How it works */}
       <section id="how" className="scroll-mt-20">
-        <h2 className="mb-6 text-center text-2xl font-semibold">How it works</h2>
+        <h2 className="mb-6 text-center text-2xl font-semibold">How Instant works</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <Step n={1} title="Give us a live URL" body="Your deployed site. We drive it in a headless browser — nothing is installed from your repo." />
           <Step n={2} title="Pick the look" body="Cinematic landscape, vertical reel, voice, subtitles, and which features to include." />
@@ -82,11 +116,16 @@ node pipeline.mjs <project> --mode=short --preset=highlights`}
         </pre>
       </section>
 
+      <StudioSection />
+
       {/* CTA */}
-      <section className="text-center">
+      <section className="flex flex-wrap justify-center gap-3 text-center">
         <Link href="/new" className="inline-block rounded-md bg-emerald-500 px-6 py-3 font-medium text-emerald-950 hover:bg-emerald-400">
-          Make your first demo
+          Make an Instant demo
         </Link>
+        <a href="#studio" className="inline-block rounded-md border border-zinc-700 px-6 py-3 font-medium hover:bg-zinc-800">
+          Get a Studio video
+        </a>
       </section>
     </div>
   );

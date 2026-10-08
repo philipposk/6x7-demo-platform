@@ -4,9 +4,9 @@ import AuthButton from "@/components/AuthButton";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "6×7 demo — turn any live app into a demo video",
+  title: "6×7 demo — product videos, two ways",
   description:
-    "Paste a live URL, get a narrated click-through demo video or a screenshot grid. Free via Claude Code / npx, or let us render it for you.",
+    "Instant: paste a live URL, get a narrated click-through demo video. Studio: a motion video built from code, with no screen recording. Do it yourself with Claude Code, or let us make it for you.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,8 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span>demo</span>
             </Link>
             <nav className="flex items-center gap-5 text-sm">
-              <Link href="/#how" className="text-zinc-400 hover:text-zinc-100">How it works</Link>
-              <Link href="/new" className="text-zinc-400 hover:text-zinc-100">New demo</Link>
+              <Link href="/#instant" className="text-zinc-400 hover:text-zinc-100">Instant</Link>
+              <Link href="/#studio" className="text-zinc-400 hover:text-zinc-100">Studio</Link>
+              <Link href="/new" className="hidden text-zinc-400 hover:text-zinc-100 sm:inline">New demo</Link>
               <AuthButton />
             </nav>
           </div>
