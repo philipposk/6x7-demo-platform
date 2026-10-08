@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { quote } from "@/lib/pricing";
 import { isEntitledFor } from "@/lib/entitlement";
 import { triggerRender } from "@/lib/trigger";
+import { resolveTarget, sourceLabel } from "@/lib/resolve-target";
 import type { RenderOptions } from "@/lib/options";
 
 // Poll a single job's status (owner only).
@@ -27,12 +28,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Validate the URL — only public http(s) URLs (live-URL-only model, no repos).
+  // Quick shape check (no network). The real safety check + GitHub lookup runs
+  // below, after sign-in and subscription, so guests can't use it to probe.
   try {
-    const u = new URL(body.url);
+    const u = new URL(String(body.url).trim());
     if (!/^https?:$/.test(u.protocol)) throw new Error();
   } catch {
-    return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a valid link starting with http:// or https://." }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -49,6 +51,28 @@ export async function POST(request: Request) {
       { status: 402 },
     );
   }
+
+  // What we will record: a website link as-is, or the live site found for a
+  // GitHub repo link. Only public web addresses pass (no localhost/private IPs).
+  const target = await resolveTarget(body.url, { token: process.env.GITHUB_DISPATCH_TOKEN });
+  if (!target.ok) {
+    return NextResponse.json(
+      { error: target.message, code: target.code },
+      { status: target.code === "github-busy" ? 503 : 400 },
+    );
+  }
+  // A repo link is never queued straight away: show the user which site we
+  // found and let them confirm (the client then re-sends it as a website link).
+  if (target.source !== "website") {
+    return NextResponse.json({
+      ok: true,
+      needsConfirmation: true,
+      resolvedUrl: target.url,
+      source: target.source,
+      sourceLabel: sourceLabel(target.source, target.repo),
+    });
+  }
+  body.url = target.url;
 
   const q = quote(body);
 
