@@ -1,11 +1,10 @@
 import Link from "next/link";
 import SubscribeButtons from "@/components/SubscribeButtons";
 
-// Plans can be bought only once Stripe and both price ids are configured; until then the cards say
-// "Coming soon" instead of failing at checkout.
-const checkoutLive = Boolean(
-  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_DEMO && process.env.STRIPE_PRICE_GLOBAL,
-);
+// Plans stay visible but can't be bought until payments are switched on. Stripe keys alone aren't
+// enough (production already has them while checkout isn't set up), so this is an explicit build-time
+// switch: set NEXT_PUBLIC_BILLING_ENABLED=true and redeploy to go live.
+const checkoutLive = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
 
 export default function SubscribePage() {
   return (
