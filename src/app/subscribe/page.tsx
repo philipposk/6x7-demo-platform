@@ -1,6 +1,12 @@
 import Link from "next/link";
 import SubscribeButtons from "@/components/SubscribeButtons";
 
+// Plans can be bought only once Stripe and both price ids are configured; until then the cards say
+// "Coming soon" instead of failing at checkout.
+const checkoutLive = Boolean(
+  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_DEMO && process.env.STRIPE_PRICE_GLOBAL,
+);
+
 export default function SubscribePage() {
   return (
     <div className="mx-auto max-w-2xl">
@@ -12,7 +18,7 @@ export default function SubscribePage() {
       </div>
 
       <div className="mt-8">
-        <SubscribeButtons />
+        <SubscribeButtons live={checkoutLive} />
       </div>
 
       <p className="mt-8 text-center text-sm text-zinc-500">

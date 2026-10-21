@@ -4,11 +4,12 @@ import { useState } from "react";
 
 // Launches Stripe Checkout for a plan. If the user isn't signed in, the API
 // returns 401 and we nudge them to sign in (top-right button).
-export default function SubscribeButtons() {
+export default function SubscribeButtons({ live }: { live: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function go(plan: "demo" | "global") {
+    if (!live) return;
     setBusy(plan);
     setErr(null);
     try {
@@ -33,6 +34,7 @@ export default function SubscribeButtons() {
         blurb="Unlimited hosted demo videos + screenshot grids for demo.6x7.gr."
         cta="Subscribe to Demo Pro"
         busy={busy === "demo"}
+        live={live}
         onClick={() => go("demo")}
       />
       <Plan
@@ -41,6 +43,7 @@ export default function SubscribeButtons() {
         cta="Subscribe to 6×7 Pro"
         highlight
         busy={busy === "global"}
+        live={live}
         onClick={() => go("global")}
       />
       {err && <p className="sm:col-span-2 text-sm text-red-400">{err}</p>}
@@ -49,9 +52,9 @@ export default function SubscribeButtons() {
 }
 
 function Plan({
-  title, blurb, cta, busy, onClick, highlight,
+  title, blurb, cta, busy, onClick, highlight, live,
 }: {
-  title: string; blurb: string; cta: string; busy: boolean; onClick: () => void; highlight?: boolean;
+  title: string; blurb: string; cta: string; busy: boolean; onClick: () => void; highlight?: boolean; live: boolean;
 }) {
   return (
     <div className={`rounded-2xl border p-6 text-left ${highlight ? "border-emerald-500/50 bg-emerald-500/5" : "border-zinc-800 bg-zinc-900/40"}`}>
@@ -59,10 +62,10 @@ function Plan({
       <p className="mt-1 text-sm text-zinc-400">{blurb}</p>
       <button
         onClick={onClick}
-        disabled={busy}
+        disabled={busy || !live}
         className="mt-5 w-full rounded-md bg-emerald-500 px-4 py-2.5 font-medium text-emerald-950 hover:bg-emerald-400 disabled:opacity-60"
       >
-        {busy ? "Redirecting…" : cta}
+        {!live ? "Coming soon" : busy ? "Redirecting…" : cta}
       </button>
     </div>
   );
