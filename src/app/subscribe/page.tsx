@@ -1,6 +1,11 @@
 import Link from "next/link";
 import SubscribeButtons from "@/components/SubscribeButtons";
 
+// Plans stay visible but can't be bought until payments are switched on. Stripe keys alone aren't
+// enough (production already has them while checkout isn't set up), so this is an explicit build-time
+// switch: set NEXT_PUBLIC_BILLING_ENABLED=true and redeploy to go live.
+const checkoutLive = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
+
 export default function SubscribePage() {
   return (
     <div className="mx-auto max-w-2xl">
@@ -12,7 +17,7 @@ export default function SubscribePage() {
       </div>
 
       <div className="mt-8">
-        <SubscribeButtons />
+        <SubscribeButtons live={checkoutLive} />
       </div>
 
       <p className="mt-8 text-center text-sm text-zinc-500">

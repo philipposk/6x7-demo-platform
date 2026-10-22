@@ -36,7 +36,7 @@ export default function SubscribeModal({
           href="/subscribe"
           className="mt-5 block rounded-md bg-emerald-500 px-4 py-2.5 text-center font-medium text-emerald-950 hover:bg-emerald-400"
         >
-          {signedIn ? "Subscribe to render" : "Sign up & subscribe"}
+          {process.env.NEXT_PUBLIC_BILLING_ENABLED !== "true" ? "Plans — coming soon" : signedIn ? "Subscribe to render" : "Sign up & subscribe"}
         </Link>
 
         <p className="mt-4 text-center text-xs text-zinc-500">
