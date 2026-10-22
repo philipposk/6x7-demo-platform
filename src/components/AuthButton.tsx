@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { GoogleIdentityButton } from "@/components/GoogleIdentityButton";
 
 // Sign in / account chip. Reads the shared sb-6x7-auth session, so a login made
 // on 6x7.gr (or any sibling app) shows here automatically.
@@ -57,9 +58,11 @@ export default function AuthButton() {
       </button>
       {open && (
         <div className="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-xl">
-          <button onClick={google} className="mb-3 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800">
-            Continue with Google
-          </button>
+          <GoogleIdentityButton getSupabase={() => supabase} onSignedIn={() => window.location.reload()}>
+            <button onClick={google} className="mb-3 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800">
+              Continue with Google
+            </button>
+          </GoogleIdentityButton>
           <div className="mb-2 text-center text-xs text-zinc-500">or magic link</div>
           {sent ? (
             <p className="text-sm text-emerald-400">Check your email for the link.</p>
