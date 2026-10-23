@@ -13,3 +13,9 @@ export default function NewDemoPage() {
     </div>
   );
 }
+
+export const metadata = {
+  title: "New demo — 6×7 demo",
+  description: "Paste a link to your live website or a public GitHub repo and order a narrated demo video. The price updates as you go.",
+  alternates: { canonical: "/new" },
+};
