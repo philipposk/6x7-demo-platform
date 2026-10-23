@@ -3,7 +3,20 @@ import Link from "next/link";
 import AuthButton from "@/components/AuthButton";
 import "./globals.css";
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://demo.6x7.gr").replace(/\/$/, "");
+const DESCRIPTION =
+  "Instant: paste a live URL, get a narrated click-through demo video. Studio: a motion video built from code, with no screen recording. Do it yourself with Claude Code, or let us make it for you.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  applicationName: "6×7 demo",
+  openGraph: {
+    type: "website",
+    siteName: "6×7 demo",
+    title: "6×7 demo — product videos, two ways",
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary" },
   title: "6×7 demo — product videos, two ways",
   description:
     "Instant: paste a live URL, get a narrated click-through demo video. Studio: a motion video built from code, with no screen recording. Do it yourself with Claude Code, or let us make it for you.",
