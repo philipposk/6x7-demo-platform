@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { stripe, PRICE, type Plan } from "@/lib/stripe";
+import { getStripe, PRICE, type Plan } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const app = chosen === "global" ? "global" : "demo";
   const meta = { supabase_user_id: user.id, app };
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     customer_email: user.email ?? undefined,

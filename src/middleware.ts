@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { trackAppAccess } from "./app-access";
 
 // Refreshes the sb-6x7-auth session cookie on every request so the SSO session
 // stays valid across all *.6x7.gr subdomains.
@@ -36,7 +37,8 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const { data: { user: __u } } = await supabase.auth.getUser();
+  await trackAppAccess(supabase, __u, request, response, "demo-platform");
   return response;
 }
 

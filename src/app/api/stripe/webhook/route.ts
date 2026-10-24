@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
   try {
     const raw = await request.text();
-    event = stripe.webhooks.constructEvent(raw, sig, secret);
+    event = getStripe().webhooks.constructEvent(raw, sig, secret);
   } catch (err) {
     return NextResponse.json({ error: `signature: ${(err as Error).message}` }, { status: 400 });
   }
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const s = event.data.object as Stripe.Checkout.Session;
         if (s.subscription) {
-          const sub = await stripe.subscriptions.retrieve(s.subscription as string);
+          const sub = await getStripe().subscriptions.retrieve(s.subscription as string);
           // session metadata is the source of truth for the link.
           sub.metadata = { ...sub.metadata, ...s.metadata };
           await upsert(sub);
