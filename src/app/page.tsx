@@ -1,6 +1,19 @@
 import Link from "next/link";
 import StudioSection from "@/components/StudioSection";
 
+export const metadata = { alternates: { canonical: "/" } };
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "6×7 demo",
+  url: "https://demo.6x7.gr/",
+  description:
+    "Turn a live web app into a narrated click-through demo video, or a motion video built from code.",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Any",
+};
+
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
@@ -14,6 +27,7 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 export default function Home() {
   return (
     <div className="space-y-20">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       {/* Hero: two offers */}
       <section className="pt-8 text-center">
         <p className="text-sm font-medium uppercase tracking-widest text-emerald-400">demo.6x7.gr</p>

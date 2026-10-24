@@ -30,3 +30,9 @@ export default function SubscribePage() {
     </div>
   );
 }
+
+export const metadata = {
+  title: "Plans — 6×7 demo",
+  description: "Plans for 6×7 demo: narrated click-through demo videos and code-built motion videos for your product.",
+  alternates: { canonical: "/subscribe" },
+};
