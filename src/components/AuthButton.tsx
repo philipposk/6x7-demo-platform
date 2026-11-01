@@ -33,7 +33,7 @@ export default function AuthButton() {
     setSent(true);
   }
   async function signOut() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     setEmail(null);
   }
 
