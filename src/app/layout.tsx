@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: "6×7 demo — product videos, two ways",
     description: DESCRIPTION,
   },
-  twitter: { card: "summary" },
+  twitter: { card: "summary_large_image" },
   title: "6×7 demo — product videos, two ways",
   description:
     "Instant: paste a live URL, get a narrated click-through demo video. Studio: a motion video built from code, with no screen recording. Do it yourself with Claude Code, or let us make it for you.",
