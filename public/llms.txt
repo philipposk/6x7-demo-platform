@@ -1,0 +1,6 @@
+# 6×7 demo
+
+> Product videos, two ways. Instant: paste a live URL and get a narrated click-through demo video. Studio: a motion video built from code, with no screen recording. Do it yourself with Claude Code, or let 6x7 make it for you.
+
+- [6×7 demo](https://demo.6x7.gr/)
+- Made by [6x7](https://6x7.gr/). [All 6x7 apps](https://portfolio.6x7.gr/)
