@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
-const cookieDomain =
-  process.env.NODE_ENV === "production" ? ".6x7.gr" : undefined;
+function cookieDomainFor(host?: string | null): string | undefined {
+  if (process.env.NODE_ENV !== "production") return undefined;
+  const h = (host ?? "").split(":")[0].toLowerCase();
+  // .6x7.dk mirror gets its own shared cookie domain; every other host keeps .6x7.gr (unchanged).
+  return h === "6x7.dk" || h.endsWith(".6x7.dk") ? ".6x7.dk" : ".6x7.gr";
+}
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -13,7 +17,7 @@ export async function createClient() {
     {
       cookieOptions: {
         name: "sb-6x7-auth",
-        domain: cookieDomain,
+        domain: cookieDomainFor((((h)=>h.get("x-forwarded-host") ?? h.get("host"))(await headers()))),
         path: "/",
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",

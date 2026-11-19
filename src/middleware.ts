@@ -6,8 +6,12 @@ import { trackAppAccess } from "./app-access";
 // stays valid across all *.6x7.gr subdomains.
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const cookieDomain =
-    process.env.NODE_ENV === "production" ? ".6x7.gr" : undefined;
+  function cookieDomainFor(host?: string | null): string | undefined {
+  if (process.env.NODE_ENV !== "production") return undefined;
+  const h = (host ?? "").split(":")[0].toLowerCase();
+  // .6x7.dk mirror gets its own shared cookie domain; every other host keeps .6x7.gr (unchanged).
+  return h === "6x7.dk" || h.endsWith(".6x7.dk") ? ".6x7.dk" : ".6x7.gr";
+}
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +19,7 @@ export async function middleware(request: NextRequest) {
     {
       cookieOptions: {
         name: "sb-6x7-auth",
-        domain: cookieDomain,
+        domain: cookieDomainFor((((h)=>h.get("x-forwarded-host") ?? h.get("host"))(request.headers))),
         path: "/",
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
